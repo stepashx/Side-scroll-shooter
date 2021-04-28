@@ -1,0 +1,7 @@
+body {
+    margin: 0;
+}
+
+canvas {
+    background: url("img/background.jpg") repeat-x;
+}
