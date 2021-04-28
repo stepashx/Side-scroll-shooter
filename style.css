@@ -3,5 +3,5 @@ body {
 }
 
 canvas {
-    background: url("img/background.jpg") repeat-x;
+    background: url("img/background.jpg") repeat;
 }
