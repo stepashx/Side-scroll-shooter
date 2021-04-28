@@ -77,7 +77,7 @@ class Bullet {
 }
 
 class Enemy {
-    constructor(x, y, width, height, color, dx, dy, bulletRadius = 3) {
+    constructor(x, y, dx, width = 50, height = 50, color = 'red', dy = 1, health = 12, bulletRadius = 5, bulletSpeed = -5, periodOfShooting = 45, timeAtNow = 45) {
         this.x = x
         this.y = y
         this.width = width
@@ -86,7 +86,11 @@ class Enemy {
         this.dx = dx
         this.dy = dy
         this.isBegin = false
+        this.health = health
         this.bulletRadius = bulletRadius
+        this.bulletSpeed = bulletSpeed
+        this.periodOfShooting = periodOfShooting
+        this.timeAtNow = timeAtNow
     }
 
     Draw() {
@@ -98,6 +102,11 @@ class Enemy {
     }
 
     DrawCheck() {
+        if (this.health <= 0)
+        {
+            delete this
+        }
+
         if (this.x + this.width >= canvas.width) {
             this.dx = -this.dx
         } else if (this.x < 0) {
@@ -113,10 +122,24 @@ class Enemy {
         if (this.y > 0) {
             this.isBegin = true
         }
+    }
 
+    Shoot () {
+        if (this.timeAtNow >= this.periodOfShooting && this.isBegin) {
+            this.timeAtNow = 0
+            enemyBullets.push(new Bullet(
+                this.x + this.width / 2,
+                this.y + this.height + this.bulletRadius,
+                this.bulletRadius,
+                this.bulletSpeed,
+                this.color
+            ))
+        }
     }
 
     Update () {
+        this.timeAtNow++
+        this.Shoot()
         this.DrawCheck()
         this.Draw()
         this.x += this.dx
@@ -124,86 +147,77 @@ class Enemy {
     }
 }
 
-function keyDownHandler(e) {
-
-    if(e.key === "Right" || e.key === "ArrowRight") {
-
-        rightPressed = true
-    }
-    else if(e.key === "Left" || e.key === "ArrowLeft") {
-        leftPressed = true
-    }
-    else if(e.key === "Up" || e.key === "ArrowUp")
-    {
-        upPressed = true
-    }
-    else if(e.key === "Down" || e.key === "ArrowDown")
-    {
-        downPressed = true
-    }
-}
-
-function keyUpHandler(e) {
-    if(e.key === "Right" || e.key === "ArrowRight") {
-
-        rightPressed = false
-    }
-    else if(e.key === "Left" || e.key === "ArrowLeft") {
-        leftPressed = false
-    }
-    else if(e.key === "Up" || e.key === "ArrowUp")
-    {
-        upPressed = false
-    }
-    else if(e.key === "Down" || e.key === "ArrowDown")
-    {
-        downPressed = false
-    }
-}
-
-const bullets = []
+const friendBullets = []
+const enemyBullets = []
 
 function Animate() {
-    bullets.forEach(bullet => {
+    friendBullets.forEach(bullet => {
         bullet.Update()
-        console.log(bullet.y)
-        if (bullet.y < 0)
-        {
-            bullets.shift()
+        if (bullet.y < 0) {
+            bullet = null
+            friendBullets.shift()
+        }
+    })
+
+    enemyBullets.forEach(function (bullet, index, object) {
+        bullet.Update()
+        if (bullet.y + bullet.ballRadius > canvas.height) {
+            bullet = null
+            object.splice(index, 1)
         }
     })
 }
 
 addEventListener('click', () => {
-    bullets.push(new Bullet(
+    friendBullets.push(new Bullet(
         player.x + 25,
         player.y - 5,
         5,
-        3,
+        8,
         'lime',
     ))
 })
 
-addEventListener("keydown", keyDownHandler, false);
-addEventListener("keyup", keyUpHandler, false);
-
-rightPressed = false
-leftPressed = false
-upPressed = false
-downPressed = false
-
 const enemies = []
 
 function CreateEnemies() {
-    enemies.push(new Enemy(0, -50, 50, 50, 'red', 4, 1))
-    enemies.push(new Enemy(canvas.width - 51, -50, 50, 50, 'red', -4, 1))
-    enemies.push(new Enemy(canvas.width / 3, -200, 50, 50, 'red', 4, 1))
-    enemies.push(new Enemy(canvas.width / (3 / 2) - 50, -200, 50, 50, 'red', -4, 1))
-    enemies.push(new Enemy(canvas.width / 2, -350, 50, 50, 'red', 4, 1))
+    enemies.push(new Enemy(
+        0,
+        -50,
+        4
+    ))
+    enemies.push(new Enemy(
+        canvas.width - 51,
+        -50,
+        -4
+    ))
+    enemies.push(new Enemy(
+        canvas.width / 3,
+        -200,
+        4
+    ))
+    enemies.push(new Enemy(
+        canvas.width / (3 / 2) - 50,
+        -200,
+        -4
+    ))
 }
 
 function CreateBoss() {
-    enemies.push(new Enemy(canvas.width / 2, -200, 200, 200, 'firebrick', 1, 1))
+    enemies.push(new Enemy(
+        canvas.width / 2,
+        -200,
+        4,
+        200,
+        200,
+        'firebrick',
+        1,
+        120,
+        10,
+        -10,
+        30,
+        30
+    ))
 }
 
 function FirstWave() {
@@ -212,7 +226,7 @@ function FirstWave() {
 
 function SecondWave() {
     CreateEnemies()
-    setTimeout(CreateEnemies,10000)
+    setTimeout(CreateEnemies,7500)
 }
 
 function ThirdWave() {
@@ -238,3 +252,36 @@ function mainDraw() {
 }
 
 const gamePlay = setInterval(mainDraw, 16)
+
+rightPressed = false
+leftPressed = false
+upPressed = false
+downPressed = false
+
+function keyDownHandler(e) {
+    if(e.key === "Right" || e.key === "ArrowRight") {
+        rightPressed = true
+    } else if(e.key === "Left" || e.key === "ArrowLeft") {
+        leftPressed = true
+    } else if(e.key === "Up" || e.key === "ArrowUp") {
+        upPressed = true
+    } else if(e.key === "Down" || e.key === "ArrowDown") {
+        downPressed = true
+    }
+
+}
+function keyUpHandler(e) {
+    if(e.key === "Right" || e.key === "ArrowRight") {
+        rightPressed = false
+    } else if(e.key === "Left" || e.key === "ArrowLeft") {
+        leftPressed = false
+    } else if(e.key === "Up" || e.key === "ArrowUp") {
+        upPressed = false
+    } else if(e.key === "Down" || e.key === "ArrowDown") {
+        downPressed = false
+    }
+
+}
+addEventListener("keydown", keyDownHandler, false);
+
+addEventListener("keyup", keyUpHandler, false);
