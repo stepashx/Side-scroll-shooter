@@ -19,16 +19,16 @@ let isEnd = false
 let isFirstWave = false
 let isSecondWave = false
 let isThirdWave = false
-let periodOfScore = 5
-let nowTimeOfScore = 0
-let periodForShoot = 17
+const periodForShoot = 17
 let nowTimeForShoot = 0
 let mx = 0
 let my = 0
-let Move = MovePlayerWithMouse
+let Move
+let player
 const friendBullets = []
 const enemyBullets = []
 const enemies = []
+const buttons = []
 
 class Button {
     constructor(x, y, width, height) {
@@ -54,215 +54,31 @@ class Player {
     }
 }
 
-let player
-
-class Bullet {
-    constructor(x, y, ballRadius, velocity, color) {
-        this.x = x
-        this.y = y
-        this.ballRadius = ballRadius
-        this.velocity = velocity
-        this.color = color
-    }
-}
-
-class Enemy {
-    constructor(x, y, dx, image = 'img/enemy.png', width = 100, height = 100, dy = 1, health = 3, bulletRadius = 5, bulletSpeed = -5, periodOfShooting = 45, timeAtNow = 45) {
-        this.x = x
-        this.y = y
-        this.image = image
-        this.width = width
-        this.height = height
-        this.dx = dx
-        this.dy = dy
-        this.isBegin = false
-        this.health = health
-        this.bulletRadius = bulletRadius
-        this.bulletSpeed = bulletSpeed
-        this.periodOfShooting = periodOfShooting
-        this.timeAtNow = timeAtNow
-    }
-}
-
-
-function keyDownHandler(e) {
-    if(e.key === "Right" || e.key === "ArrowRight") {
-        rightPressed = true
-    } else if(e.key === "Left" || e.key === "ArrowLeft") {
-        leftPressed = true
-    } else if(e.key === "Up" || e.key === "ArrowUp") {
-        upPressed = true
-    } else if(e.key === "Down" || e.key === "ArrowDown") {
-        downPressed = true
-    }
-    if(e.key === 'Space') {
-        spacePressed = true
-    }
-}
-function keyUpHandler(e) {
-    if(e.key === "Right" || e.key === "ArrowRight") {
-        rightPressed = false
-    } else if(e.key === "Left" || e.key === "ArrowLeft") {
-        leftPressed = false
-    } else if(e.key === "Up" || e.key === "ArrowUp") {
-        upPressed = false
-    } else if(e.key === "Down" || e.key === "ArrowDown") {
-        downPressed = false
-    }
-    if(e.key === 'Space') {
-        spacePressed = false
-    }
-}
-
-addEventListener("keydown", keyDownHandler);
-addEventListener("keyup", keyUpHandler);
-
-function CreateBoss() {
-    enemies.push(new Enemy(
-        canvas.width / 2,
-        -200,
-        4,
-        'img/boss.png',
-        300,
-        200,
-        1,
-        60,
-        10,
-        -10,
-        25,
-        25
-    ))
-
-}
-
-
-function FirstWave() {
-    CreateEnemies()
-}
-function SecondWave() {
-    CreateEnemies()
-    setTimeout(CreateEnemies,7500)
-
-}
-function ThirdWave() {
-    CreateBoss()
-}
-
-function mainDraw() {
-    ctx.clearRect(0, 0, canvas.width, canvas.height)
-    if (isMenu) {
-        drawStartMenu()
-    } else if (isGame) {
-        if (!isFirstWave) {
-            FirstWave()
-            isFirstWave = true
-        } else if (!isSecondWave && CheckEnemies()) {
-            SecondWave()
-            isSecondWave = true
-        } else if (!isThirdWave && CheckEnemies()) {
-            ThirdWave()
-            isThirdWave = true
-        } else if (CheckEnemies()) {
-            isFirstWave = false
-            isSecondWave = false
-            isThirdWave = false
-        }
-        UpdatePlayer()
-        AnimateBullets()
-        EnemiesMove()
-    } else if (isEnd) {
-        drawLoseMenu()
-    }
-
-}
-
-function drawStartMenu() {
-    ctx.beginPath()
-    ctx.font = "50px serif";
-    ctx.fillStyle = "white";
-    ctx.fillText("SCORE RECORD: " + scoreRecord, canvas.width / 2, canvas.height / 2 - 65);
-    ctx.font = "40px serif";
-    ctx.fillText("SELECT CONTROL", canvas.width / 2, canvas.height / 2);
-    ctx.fillText("Play with keyboard!(*space* for shooting)", canvas.width / 2, canvas.height / 2 + 65);
-    ctx.fillText("OR", canvas.width / 2, canvas.height / 2 + 130);
-    ctx.fillText("Play with mouse!(auto shooting)", canvas.width / 2, canvas.height / 2 + 195);
-    ctx.closePath()
-}
-
-function drawLoseMenu() {
-    ctx.font = "50px serif";
-    ctx.fillStyle = "white";
-    ctx.fillText("YOU LOSE!", canvas.width / 2, canvas.height / 2 - 195);
-    ctx.fillText("YOUR SCORE: " + score, canvas.width / 2, canvas.height / 2 - 130);
-    ctx.fillText("SCORE RECORD: " + scoreRecord, canvas.width / 2, canvas.height / 2 - 65);
-    ctx.font = "40px serif";
-    ctx.fillText("SELECT CONTROL", canvas.width / 2, canvas.height / 2);
-    ctx.fillText("Play with keyboard!(*space* for shooting)", canvas.width / 2, canvas.height / 2 + 65);
-    ctx.fillText("OR", canvas.width / 2, canvas.height / 2 + 130);
-    ctx.fillText("Play with mouse!(auto shooting)", canvas.width / 2, canvas.height / 2 + 195);
-}
-
-function DrawEnemy(enemy) {
-    const enemyModel = new Image();
-    enemyModel.src = enemy.image;
-    ctx.drawImage(enemyModel, enemy.x, enemy.y, enemy.width, enemy.height);
-}
-
-function EnemiesMove() {
-    enemies.forEach((enemy, enemyIndex) => {
-        friendBullets.forEach((bullet, bulletIndex) => {
-            if (PointInTexture(bullet.x + bullet.ballRadius, bullet.y, enemy) ||
-                PointInTexture(bullet.x - bullet.ballRadius, bullet.y, enemy) ||
-                PointInTexture(bullet.x, bullet.y + bullet.ballRadius, enemy) ||
-                PointInTexture(bullet.x, bullet.y - bullet.ballRadius, enemy) ||
-                PointInTexture(bullet.x + bullet.ballRadius, bullet.y + bullet.ballRadius, enemy) ||
-                PointInTexture(bullet.x - bullet.ballRadius, bullet.y + bullet.ballRadius, enemy) ||
-                PointInTexture(bullet.x + bullet.ballRadius, bullet.y - bullet.ballRadius, enemy) ||
-                PointInTexture(bullet.x - bullet.ballRadius, bullet.y - bullet.ballRadius, enemy)) {
-                bullet = null
-                friendBullets.splice(bulletIndex, 1)
-                enemy.health--
-            }
-        })
-
-        if (checkHealth(enemy)) {
-            enemy = null
-            enemies.splice(enemyIndex, 1)
+function spaceShooting() {
+    if (spacePressed){
+        if (nowTimeForShoot >= periodForShoot) {
+            nowTimeForShoot = 0
+            createFriendBullet()
         } else {
-            EnemyUpdate(enemy)
+            nowTimeForShoot++
         }
-    })
-}
-
-function UpdateEnemyCheckForWalls(enemy) {
-    if (enemy.x + enemy.width >= canvas.width) {
-        enemy.dx = -enemy.dx
-    } else if (enemy.x < 0) {
-        enemy.dx = -enemy.dx
-    }
-
-    if (enemy.y + enemy.width >= canvas.height / (3 / 2)) {
-        enemy.dy = -enemy.dy
-    } else if (enemy.y <= 0 && enemy.isBegin) {
-        enemy.dy = -enemy.dy
-    }
-
-    if (enemy.y > 0) {
-        enemy.isBegin = true
+    } else {
+        nowTimeForShoot = periodForShoot
     }
 }
 
-function EnemyShoot (enemy) {
-    if (enemy.timeAtNow >= enemy.periodOfShooting && enemy.isBegin) {
-        enemy.timeAtNow = 0
-        enemyBullets.push(new Bullet(
-            enemy.x + enemy.width / 2,
-            enemy.y + enemy.height + enemy.bulletRadius,
-            enemy.bulletRadius,
-            enemy.bulletSpeed,
-            'red'
-        ))
-    }
+function DrawShield() {
+    const shieldModel = new Image();
+    shieldModel.src = "img/energy-shield-png.png"
+    ctx.drawImage(shieldModel, player.x - 20, player.y - 15, 140, 140);
+}
+
+function DrawHealth() {
+    ctx.beginPath()
+    ctx.fillStyle = "white";
+    ctx.font = "30px serif";
+    ctx.fillText("HP: " + player.health, canvas.width - 125, 30)
+    ctx.closePath()
 }
 
 function PlayerAutoShoot() {
@@ -272,42 +88,6 @@ function PlayerAutoShoot() {
     } else{
         nowTimeForShoot++
     }
-}
-
-function EnemyUpdate (enemy) {
-    enemy.timeAtNow++
-    EnemyShoot(enemy)
-    UpdateEnemyCheckForWalls(enemy)
-    DrawEnemy(enemy)
-    enemy.x += enemy.dx
-    enemy.y += enemy.dy
-}
-
-function CheckEnemies() {
-    return enemies.length <= 0
-}
-
-function CreateEnemies() {
-    enemies.push(new Enemy(
-        0,
-        -50,
-        4
-    ))
-    enemies.push(new Enemy(
-        canvas.width - 101,
-        -50,
-        -4
-    ))
-    enemies.push(new Enemy(
-        canvas.width / 3,
-        -200,
-        4
-    ))
-    enemies.push(new Enemy(
-        canvas.width / (3 / 2) - 50,
-        -200,
-        -4
-    ))
 }
 
 function UpdatePlayerCheckForWalls() {
@@ -349,11 +129,238 @@ function MovePlayerWithMouse() {
     player.y = my - 50
 }
 
-function PointInTexture(pointX, pointY ,character) {
-    return pointX >= character.x &&
-        pointX <= character.x + character.width &&
-        pointY >= character.y &&
-        pointY <= character.y + character.height;
+function CheckPlayerGodMod () {
+    if (player.GodModTime < player.periodOfGodTime) {
+        player.GodModTime++
+        player.isGodMod = true
+        DrawShield()
+    } else {
+        player.isGodMod = false
+    }
+}
+
+function checkHealth (character) {
+    return character.health <= 0
+}
+
+function UpdatePlayer() {
+    if (checkHealth(player)) {
+        isGame = false
+        isEnd = true
+        if (score > scoreRecord) {
+            scoreRecord = score
+        }
+    } else {
+        if (isMouse) {
+            PlayerAutoShoot()
+        } else if (isKeyboard) {
+            spaceShooting()
+        }
+        CheckPlayerGodMod()
+        UpdatePlayerCheckerForObstacle()
+        Move()
+        UpdatePlayerCheckForWalls()
+        DrawPlayer()
+    }
+}
+
+class Bullet {
+    constructor(x, y, ballRadius, velocity, color) {
+        this.x = x
+        this.y = y
+        this.ballRadius = ballRadius
+        this.velocity = velocity
+        this.color = color
+    }
+}
+
+function AnimateBullets() {
+    friendBullets.forEach((bullet, index, object) => {
+        UpdateBullet(bullet)
+        if (bullet.y < 0) {
+            bullet = null
+            object.splice(index, 1)
+        }
+    })
+
+    enemyBullets.forEach(function (bullet, index, object) {
+        UpdateBullet(bullet)
+        if (bullet.y - bullet.ballRadius >= canvas.height) {
+            bullet = null
+            object.splice(index, 1)
+        }
+    })
+}
+
+function DrawBullet(bullet) {
+    ctx.beginPath()
+    ctx.arc(bullet.x, bullet.y, bullet.ballRadius, 0, Math.PI * 2, false)
+    ctx.fillStyle = bullet.color
+    ctx.fill()
+    ctx.closePath()
+}
+
+function UpdateBullet(bullet) {
+    DrawBullet(bullet)
+    bullet.y -= bullet.velocity
+}
+
+function createFriendBullet() {
+    friendBullets.push(new Bullet(
+        player.x + 50,
+        player.y + 5,
+        5,
+        8,
+        'lime'
+    ))
+}
+
+class Enemy {
+    constructor(x, y, dx, image = 'img/enemy.png', width = 100, height = 100, dy = 1, health = 3, bulletRadius = 5, bulletSpeed = -5, periodOfShooting = 45, timeAtNow = 45) {
+        this.x = x
+        this.y = y
+        this.image = image
+        this.width = width
+        this.height = height
+        this.dx = dx
+        this.dy = dy
+        this.isBegin = false
+        this.health = health
+        this.bulletRadius = bulletRadius
+        this.bulletSpeed = bulletSpeed
+        this.periodOfShooting = periodOfShooting
+        this.timeAtNow = timeAtNow
+    }
+}
+
+function DrawEnemy(enemy) {
+    const enemyModel = new Image();
+    enemyModel.src = enemy.image;
+    ctx.drawImage(enemyModel, enemy.x, enemy.y, enemy.width, enemy.height);
+}
+
+function EnemiesMove() {
+    enemies.forEach((enemy, enemyIndex) => {
+        friendBullets.forEach((bullet, bulletIndex) => {
+            if (PointInTexture(bullet.x + bullet.ballRadius, bullet.y, enemy) ||
+                PointInTexture(bullet.x - bullet.ballRadius, bullet.y, enemy) ||
+                PointInTexture(bullet.x, bullet.y + bullet.ballRadius, enemy) ||
+                PointInTexture(bullet.x, bullet.y - bullet.ballRadius, enemy) ||
+                PointInTexture(bullet.x + bullet.ballRadius, bullet.y + bullet.ballRadius, enemy) ||
+                PointInTexture(bullet.x - bullet.ballRadius, bullet.y + bullet.ballRadius, enemy) ||
+                PointInTexture(bullet.x + bullet.ballRadius, bullet.y - bullet.ballRadius, enemy) ||
+                PointInTexture(bullet.x - bullet.ballRadius, bullet.y - bullet.ballRadius, enemy)) {
+                bullet = null
+                friendBullets.splice(bulletIndex, 1)
+                enemy.health--
+            }
+        })
+
+        if (checkHealth(enemy)) {
+            score += Math.trunc(Math.random() * (100 - 50) + 50)
+            enemy = null
+            enemies.splice(enemyIndex, 1)
+        } else {
+            EnemyUpdate(enemy)
+        }
+    })
+}
+
+function UpdateEnemyCheckForWalls(enemy) {
+    if (enemy.x + enemy.width >= canvas.width) {
+        enemy.dx = -enemy.dx
+    } else if (enemy.x < 0) {
+        enemy.dx = -enemy.dx
+    }
+
+    if (enemy.y + enemy.width >= canvas.height / (3 / 2)) {
+        enemy.dy = -enemy.dy
+    } else if (enemy.y <= 0 && enemy.isBegin) {
+        enemy.dy = -enemy.dy
+    }
+
+    if (enemy.y > 0) {
+        enemy.isBegin = true
+    }
+}
+
+function EnemyShoot (enemy) {
+    if (enemy.timeAtNow >= enemy.periodOfShooting && enemy.isBegin) {
+        enemy.timeAtNow = 0
+        enemyBullets.push(new Bullet(
+            enemy.x + enemy.width / 2,
+            enemy.y + enemy.height + enemy.bulletRadius,
+            enemy.bulletRadius,
+            enemy.bulletSpeed,
+            'red'
+        ))
+    }
+}
+
+function EnemyUpdate (enemy) {
+    enemy.timeAtNow++
+    EnemyShoot(enemy)
+    UpdateEnemyCheckForWalls(enemy)
+    DrawEnemy(enemy)
+    enemy.x += enemy.dx
+    enemy.y += enemy.dy
+}
+
+function CheckEnemies() {
+    return enemies.length <= 0
+}
+
+function CreateEnemies() {
+    enemies.push(new Enemy(
+        0,
+        -50,
+        4
+    ))
+    enemies.push(new Enemy(
+        canvas.width - 101,
+        -50,
+        -4
+    ))
+    enemies.push(new Enemy(
+        canvas.width / 3,
+        -200,
+        4
+    ))
+    enemies.push(new Enemy(
+        canvas.width / (3 / 2) - 50,
+        -200,
+        -4
+    ))
+}
+
+function CreateBoss() {
+    enemies.push(new Enemy(
+        canvas.width / 2,
+        -200,
+        4,
+        'img/boss.png',
+        300,
+        200,
+        1,
+        60,
+        10,
+        -10,
+        25,
+        25
+    ))
+
+}
+
+function FirstWave() {
+    CreateEnemies()
+}
+function SecondWave() {
+    CreateEnemies()
+    setTimeout(CreateEnemies,7500)
+
+}
+function ThirdWave() {
+    CreateBoss()
 }
 
 function UpdatePlayerCheckerForObstacle () {
@@ -394,78 +401,81 @@ function UpdatePlayerCheckerForObstacle () {
     })
 }
 
-function CheckPlayerGodMod () {
-    if (player.GodModTime < player.periodOfGodTime) {
-        player.GodModTime++
-        player.isGodMod = true
-    } else {
-        player.isGodMod = false
+function keyDownHandler(e) {
+    if(e.key === "Right" || e.key === "ArrowRight") {
+        rightPressed = true
+    } else if(e.key === "Left" || e.key === "ArrowLeft") {
+        leftPressed = true
+    } else if(e.key === "Up" || e.key === "ArrowUp") {
+        upPressed = true
+    } else if(e.key === "Down" || e.key === "ArrowDown") {
+        downPressed = true
+    }
+    if(e.key === ' ') {
+        spacePressed = true
+    }
+}
+function keyUpHandler(e) {
+    if(e.key === "Right" || e.key === "ArrowRight") {
+        rightPressed = false
+    } else if(e.key === "Left" || e.key === "ArrowLeft") {
+        leftPressed = false
+    } else if(e.key === "Up" || e.key === "ArrowUp") {
+        upPressed = false
+    } else if(e.key === "Down" || e.key === "ArrowDown") {
+        downPressed = false
+    }
+    if(e.key === ' ') {
+        spacePressed = false
     }
 }
 
-function checkHealth (character) {
-    return character.health <= 0
-}
+addEventListener("keydown", keyDownHandler);
+addEventListener("keyup", keyUpHandler);
 
-function UpdatePlayer() {
-    if (checkHealth(player)) {
-        isGame = false
-        isEnd = true
-    } else {
-        if (isMouse) {
-            PlayerAutoShoot()
-        }
-        CheckPlayerGodMod()
-        UpdatePlayerCheckerForObstacle()
-        Move()
-        UpdatePlayerCheckForWalls()
-        DrawPlayer()
-    }
-}
-
-function DrawBullet(bullet) {
+function drawStartMenu() {
     ctx.beginPath()
-    ctx.arc(bullet.x, bullet.y, bullet.ballRadius, 0, Math.PI * 2, false)
-    ctx.fillStyle = bullet.color
-    ctx.fill()
+    ctx.font = "50px serif";
+    ctx.fillStyle = "white";
+    ctx.fillText("SCORE RECORD: " + scoreRecord, canvas.width / 2, canvas.height / 2 - 65);
+    ctx.font = "40px serif";
+    ctx.fillText("SELECT CONTROL", canvas.width / 2, canvas.height / 2);
+    ctx.fillText("Play with keyboard!(*space* for shooting)", canvas.width / 2, canvas.height / 2 + 65);
+    ctx.fillText("OR", canvas.width / 2, canvas.height / 2 + 130);
+    ctx.fillText("Play with mouse!(auto shooting)", canvas.width / 2, canvas.height / 2 + 195);
     ctx.closePath()
 }
 
-function UpdateBullet(bullet) {
-    DrawBullet(bullet)
-    bullet.y -= bullet.velocity
+function drawLoseMenu() {
+    ctx.beginPath()
+    ctx.font = "50px serif";
+    ctx.fillStyle = "white";
+    ctx.fillText("YOU LOSE!", canvas.width / 2, canvas.height / 2 - 195);
+    ctx.fillText("YOUR SCORE: " + score, canvas.width / 2, canvas.height / 2 - 130);
+    ctx.fillText("SCORE RECORD: " + scoreRecord, canvas.width / 2, canvas.height / 2 - 65);
+    ctx.font = "40px serif";
+    ctx.fillText("SELECT CONTROL", canvas.width / 2, canvas.height / 2);
+    ctx.fillText("Play with keyboard!(*space* for shooting)", canvas.width / 2, canvas.height / 2 + 65);
+    ctx.fillText("OR", canvas.width / 2, canvas.height / 2 + 130);
+    ctx.fillText("Play with mouse!(auto shooting)", canvas.width / 2, canvas.height / 2 + 195);
+    ctx.closePath()
 }
 
-function createFriendBullet() {
-    friendBullets.push(new Bullet(
-        player.x + 50,
-        player.y + 5,
-        5,
-        8,
-        'lime'
-    ))
+function DrawScore() {
+    ctx.beginPath()
+    ctx.fillStyle = "white";
+    ctx.font = "40px serif";
+    ctx.fillText("Score: " + score, 20, 40)
+    ctx.closePath()
 }
 
-function AnimateBullets() {
-    friendBullets.forEach((bullet, index, object) => {
-        UpdateBullet(bullet)
-        if (bullet.y < 0) {
-            bullet = null
-            object.splice(index, 1)
-        }
-    })
-
-    enemyBullets.forEach(function (bullet, index, object) {
-        UpdateBullet(bullet)
-        if (bullet.y - bullet.ballRadius >= canvas.height) {
-            bullet = null
-            object.splice(index, 1)
-        }
-    })
-
+function PointInTexture(pointX, pointY ,character) {
+    return pointX >= character.x &&
+        pointX <= character.x + character.width &&
+        pointY >= character.y &&
+        pointY <= character.y + character.height;
 }
 
-const buttons = []
 buttons.push(new Button(
     canvas.width / 2,
     canvas.height / 2 + 65 - 40,
@@ -478,7 +488,6 @@ buttons.push(new Button(
     40 * "Play with mouse!(auto shooting)".length,
     40)
 )
-
 
 addEventListener('click', function(event)
 {
@@ -508,6 +517,7 @@ addEventListener('click', function(event)
         isFirstWave = false
         isSecondWave = false
         isThirdWave = false
+        score = 0
     }
     else if (PointInTexture(mx, my, buttons[1]) && (isMenu || isEnd))
     {
@@ -530,11 +540,41 @@ addEventListener('click', function(event)
         isFirstWave = false
         isSecondWave = false
         isThirdWave = false
+        score = 0
     }
     else if (isGame && isKeyboard)
     {
         createFriendBullet()
     }
 });
+
+function mainDraw() {
+    ctx.clearRect(0, 0, canvas.width, canvas.height)
+    if (isMenu) {
+        drawStartMenu()
+    } else if (isGame) {
+        if (!isFirstWave) {
+            FirstWave()
+            isFirstWave = true
+        } else if (!isSecondWave && CheckEnemies()) {
+            SecondWave()
+            isSecondWave = true
+        } else if (!isThirdWave && CheckEnemies()) {
+            ThirdWave()
+            isThirdWave = true
+        } else if (CheckEnemies()) {
+            isFirstWave = false
+            isSecondWave = false
+            isThirdWave = false
+        }
+        DrawScore()
+        DrawHealth()
+        UpdatePlayer()
+        AnimateBullets()
+        EnemiesMove()
+    } else if (isEnd) {
+        drawLoseMenu()
+    }
+}
 
 setInterval(mainDraw, 16)
