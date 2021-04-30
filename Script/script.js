@@ -13,7 +13,6 @@ let score = 0;
 let scoreRecord = 0;
 let isKeyboard = false
 let isMouse = false
-let isTouch = false
 let isMenu = true
 let isGame = false
 let isEnd = false
@@ -22,9 +21,23 @@ let isSecondWave = false
 let isThirdWave = false
 let periodOfScore = 5
 let nowTimeOfScore = 0
+let periodForShoot = 17
+let nowTimeForShoot = 0
+let mx = 0
+let my = 0
+let Move = MovePlayerWithMouse
 const friendBullets = []
 const enemyBullets = []
 const enemies = []
+
+class Button {
+    constructor(x, y, width, height) {
+        this.x = x
+        this.y = y
+        this.width = width
+        this.height = height
+    }
+}
 
 class Player {
     constructor(x, y, width = 100, height = 100, dx = 10, dy = 5, health = 3, isGodMod = false, periodOfGodTime = 180, GodModTime = 180) {
@@ -41,7 +54,7 @@ class Player {
     }
 }
 
-let player = new Player(canvas.width / 2 - 25, canvas.height - 100)
+let player
 
 class Bullet {
     constructor(x, y, ballRadius, velocity, color) {
@@ -135,19 +148,6 @@ function ThirdWave() {
     CreateBoss()
 }
 
-function keyboardCheck() {
-    if (isKeyboard) {
-        addEventListener("keydown", keyDownHandler)
-        addEventListener("keyup", keyUpHandler)
-    } else if (isMouse) {
-        addEventListener("keydown", keyDownHandler)
-        addEventListener("keyup", keyUpHandler)
-        addEventListener('click', createFriendBullet)
-    }
-}
-
-addEventListener('click', createFriendBullet)
-
 function mainDraw() {
     ctx.clearRect(0, 0, canvas.width, canvas.height)
     if (isMenu) {
@@ -185,7 +185,7 @@ function drawStartMenu() {
     ctx.fillText("SELECT CONTROL", canvas.width / 2, canvas.height / 2);
     ctx.fillText("Play with keyboard!(*space* for shooting)", canvas.width / 2, canvas.height / 2 + 65);
     ctx.fillText("OR", canvas.width / 2, canvas.height / 2 + 130);
-    ctx.fillText("Play with mouse!", canvas.width / 2, canvas.height / 2 + 195);
+    ctx.fillText("Play with mouse!(auto shooting)", canvas.width / 2, canvas.height / 2 + 195);
     ctx.closePath()
 }
 
@@ -199,7 +199,7 @@ function drawLoseMenu() {
     ctx.fillText("SELECT CONTROL", canvas.width / 2, canvas.height / 2);
     ctx.fillText("Play with keyboard!(*space* for shooting)", canvas.width / 2, canvas.height / 2 + 65);
     ctx.fillText("OR", canvas.width / 2, canvas.height / 2 + 130);
-    ctx.fillText("Play with mouse!", canvas.width / 2, canvas.height / 2 + 195);
+    ctx.fillText("Play with mouse!(auto shooting)", canvas.width / 2, canvas.height / 2 + 195);
 }
 
 function DrawEnemy(enemy) {
@@ -262,6 +262,15 @@ function EnemyShoot (enemy) {
             enemy.bulletSpeed,
             'red'
         ))
+    }
+}
+
+function PlayerAutoShoot() {
+    if (nowTimeForShoot >= periodForShoot) {
+        nowTimeForShoot = 0
+        createFriendBullet()
+    } else{
+        nowTimeForShoot++
     }
 }
 
@@ -336,7 +345,8 @@ function MovePlayerWithKeyboard() {
 }
 
 function MovePlayerWithMouse() {
-    
+    player.x = mx - 50
+    player.y = my - 50
 }
 
 function PointInTexture(pointX, pointY ,character) {
@@ -402,9 +412,12 @@ function UpdatePlayer() {
         isGame = false
         isEnd = true
     } else {
+        if (isMouse) {
+            PlayerAutoShoot()
+        }
         CheckPlayerGodMod()
         UpdatePlayerCheckerForObstacle()
-        MovePlayerWithKeyboard()
+        Move()
         UpdatePlayerCheckForWalls()
         DrawPlayer()
     }
@@ -451,4 +464,77 @@ function AnimateBullets() {
     })
 
 }
+
+const buttons = []
+buttons.push(new Button(
+    canvas.width / 2,
+    canvas.height / 2 + 65 - 40,
+    40 * "Play with keyboard!(*space* for shooting)".length,
+    40)
+)
+buttons.push(new Button(
+    canvas.width / 2,
+    canvas.height / 2 + 195 - 40,
+    40 * "Play with mouse!(auto shooting)".length,
+    40)
+)
+
+
+addEventListener('click', function(event)
+{
+    onmousemove = function (event) {
+        mx = event.x
+        my = event.y
+        console.log(mx, my)
+    }
+    if (PointInTexture(mx, my, buttons[0]) && (isMenu || isEnd))
+    {
+        isKeyboard = true
+        isMouse = false
+        Move = MovePlayerWithKeyboard
+        isMenu = false
+        isEnd = false
+        isGame = true
+        while (enemies.length > 0) {
+            enemies.pop()
+        }
+        while (friendBullets.length > 0) {
+            friendBullets.pop()
+        }
+        while (enemyBullets.length > 0) {
+            enemyBullets.pop()
+        }
+        player = new Player(canvas.width / 2 - 25, canvas.height - 100)
+        isFirstWave = false
+        isSecondWave = false
+        isThirdWave = false
+    }
+    else if (PointInTexture(mx, my, buttons[1]) && (isMenu || isEnd))
+    {
+        isMouse = true
+        isKeyboard = false
+        Move = MovePlayerWithMouse
+        isMenu = false
+        isEnd = false
+        isGame = true
+        while (enemies.length > 0) {
+            enemies.pop()
+        }
+        while (friendBullets.length > 0) {
+            friendBullets.pop()
+        }
+        while (enemyBullets.length > 0) {
+            enemyBullets.pop()
+        }
+        player = new Player(canvas.width / 2 - 25, canvas.height - 100)
+        isFirstWave = false
+        isSecondWave = false
+        isThirdWave = false
+    }
+    else if (isGame && isKeyboard)
+    {
+        createFriendBullet()
+    }
+});
+
 setInterval(mainDraw, 16)
